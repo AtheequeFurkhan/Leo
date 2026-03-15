@@ -1,46 +1,42 @@
-from typing import List
+from typing import List, Dict, Any
+from .base_agent import BaseAgent
 from ..schemas.agent_output import AgentOutput
-from ..schemas.final_response import FinalResponse
-from ..schemas.finding_schema import Finding
 
-class SynthesizerAgent:
+class SynthesizerAgent(BaseAgent):
     def __init__(self):
-        self.name = "SynthesizerAgent"
+        super().__init__("SynthesizerAgent")
 
-    async def run(self, verified_output: AgentOutput, original_outputs: List[AgentOutput]) -> FinalResponse:
-        findings = verified_output.findings
-        facts = [f for f in findings if f.type == "fact"]
-        interpretations = [f for f in findings if f.type == "interpretation"]
-        
-        all_evidence = []
-        for out in original_outputs:
-            all_evidence.extend(out.evidence)
+    async def run(self, query_context, verified_outputs: List[AgentOutput]) -> Dict[str, Any]:
+        """
+        Synthesize findings into a final executive summary using LLM.
+        """
+        # Prepare all findings for synthesis
+        all_findings = []
+        for out in verified_outputs:
+            all_findings.extend([f.model_dump() for f in out.findings])
             
-        all_artifacts = []
-        for out in original_outputs:
-            all_artifacts.extend(out.artifacts)
-        all_artifacts.extend(verified_output.artifacts)
+        prompt = f"""
+        Synthesize the following market intelligence findings for {query_context.company_name or query_context.query}.
+        Produce a boardroom-quality summary including:
+        1. Executive Overiew (High-level narrative)
+        2. Key Opportunities (Bullet points)
+        3. Strategic Risks (Bullet points)
+        4. Recommended Next Steps (Actionable items)
         
-        agent_statuses = {out.agent_name: out.status for out in original_outputs}
+        Format the output as a JSON object with 'summary', 'opportunities', 'risks', and 'recommendations'.
+        """
         
-        confidence_artifact = next((a for a in verified_output.artifacts if a.artifact_type == "confidence_overview"), None)
-        confidence_overview = confidence_artifact.payload if confidence_artifact else {}
-
-        return FinalResponse(
-            executive_summary="The AI SDR market is rapidly evolving with a shift towards autonomous agents.",
-            findings=findings,
-            facts=facts,
-            interpretations=interpretations,
-            evidence=all_evidence,
-            artifacts=all_artifacts,
-            recommendations=[
-                "Focus on 'Autonomous' messaging to differentiate from 'Automated' legacy tools.",
-                "Streamline onboarding to reduce setup friction noted in community discussions."
+        synthesis = await self.llm.analyze_data(all_findings, prompt)
+        
+        return {
+            "query": query_context.query,
+            "company": query_context.company_name,
+            "executive_summary": synthesis.get("summary", "No summary available."),
+            "strategic_pillars": [
+                {"title": "Opportunities", "content": synthesis.get("opportunities", [])},
+                {"title": "Risks", "content": synthesis.get("risks", [])},
+                {"title": "Recommendations", "content": synthesis.get("recommendations", [])}
             ],
-            confidence_overview=confidence_overview,
-            follow_up_questions=[
-                "How does Vector's integration depth compare to Salesforce native tools?",
-                "What is the specific churn rate for seat-based vs usage-based pricing?"
-            ],
-            agent_statuses=agent_statuses
-        )
+            "confidence_score": 0.85,
+            "agent_contributions": [out.agent_name for out in verified_outputs]
+        }

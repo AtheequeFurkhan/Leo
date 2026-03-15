@@ -14,7 +14,7 @@ class Orchestrator:
         self.synthesizer = SynthesizerAgent()
 
     async def run(self, query: QueryRequest) -> FinalResponse:
-        # 1. Select agents (In a hackathon, run all relevant ones)
+        # 1. Select agents
         agents_to_run = self.registry.get_all_agents().values()
         
         # 2. Run concurrently
@@ -22,12 +22,23 @@ class Orchestrator:
         agent_outputs: List[AgentOutput] = await asyncio.gather(*tasks)
         
         # 3. Verify confidence
-        verified_output = await self.verifier.run(agent_outputs)
+        verified_outputs = await self.verifier.run(query, agent_outputs)
         
-        # 4. Synthesize final response
-        final_response = await self.synthesizer.run(verified_output, agent_outputs)
+        # 4. Synthesize final response data
+        synthesis_data = await self.synthesizer.run(query, verified_outputs)
         
-        return final_response
+        # 5. Wrap in FinalResponse schema
+        return FinalResponse(
+            executive_summary=synthesis_data.get("executive_summary", ""),
+            findings=[f for out in verified_outputs for f in out.findings],
+            facts=[f for out in verified_outputs for f in out.findings if f.type == "fact"],
+            interpretations=[f for out in verified_outputs for f in out.findings if f.type == "interpretation"],
+            evidence=[e for out in verified_outputs for e in out.evidence],
+            artifacts=[a for out in verified_outputs for a in out.artifacts],
+            confidence_score=synthesis_data.get("confidence_score", 0.0),
+            strategic_pillars=synthesis_data.get("strategic_pillars", []),
+            agent_statuses={out.agent_name: out.status for out in verified_outputs}
+        )
 
     async def _safe_run(self, agent, query) -> AgentOutput:
         try:

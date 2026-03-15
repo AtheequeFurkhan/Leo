@@ -1,19 +1,37 @@
-import asyncio
-import random
+import httpx
 from typing import Dict, Any
+from ..config import settings
 
 async def get_company_intel(company_name: str) -> Dict[str, Any]:
     """
     Retrieve financial and structural intelligence for a company from Crunchbase.
     """
-    await asyncio.sleep(0.6)
-    # Simulated Crunchbase response
-    return {
-        "name": company_name,
-        "funding_total": f"${random.randint(50, 500)}M",
-        "last_funding_round": "Series C",
-        "employee_count": f"{random.randint(100, 1000)}+",
-        "headquarters": "San Francisco, CA",
-        "description": f"{company_name} is a leading player in the intelligence systems space.",
-        "executives": ["Jane Doe (CEO)", "John Smith (CTO)"]
+    if not settings.CRUNCHBASE_API_KEY:
+        return {"error": "Missing Crunchbase API Key"}
+
+    # Crunchbase API v4 endpoint for organizations
+    url = f"https://api.crunchbase.com/api/v4/entities/organizations/{company_name.lower().replace(' ', '-')}"
+    params = {
+        "user_key": settings.CRUNCHBASE_API_KEY,
+        "field_ids": "name,funding_total,last_funding_at,num_employees_enum,short_description"
     }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, timeout=10.0)
+            if response.status_code == 404:
+                return {"error": f"Company {company_name} not found in Crunchbase"}
+            
+            response.raise_for_status()
+            data = response.json()
+            props = data.get("properties", {})
+            
+            return {
+                "name": props.get("name"),
+                "funding_total": props.get("funding_total", {}).get("value_usd"),
+                "last_funding_round": props.get("last_funding_at"),
+                "employee_count": props.get("num_employees_enum"),
+                "description": props.get("short_description")
+            }
+        except Exception as e:
+            return {"error": str(e)}

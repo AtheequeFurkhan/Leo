@@ -15,43 +15,60 @@ class MarketTrendsAgent(BaseAgent):
     async def run(self, query_context) -> AgentOutput:
         # 1. Collect sources (Web + News)
         search_query = f"market trends for {query_context.company_name or query_context.query}"
-        web_results, news_results = await asyncio.gather(
+        results = await asyncio.gather(
             search_web(search_query),
             search_news(search_query)
         )
+        web_results, news_results = results
         
-        # 2. Extract signals & 3. Generate findings
-        findings = [
-            Finding(
-                id="trend-1",
-                statement=f"Growth in {query_context.company_name or 'the sector'} is accelerating due to AI demand.",
-                type="fact",
-                confidence="high",
-                rationale="Multiple news sources indicate increased funding and hiring.",
-                domain="Market",
-                evidence_ids=["ev-1"]
-            )
-        ]
+        # 2. Extract signals & 3. Generate findings using LLM
+        all_raw_data = {"web": web_results, "news": news_results}
+        llm_analysis = await self.analyze_with_llm(
+            data=all_raw_data, 
+            query=search_query, 
+            context_type="Market Trend"
+        )
         
-        evidence = [
-            Evidence(
-                id="ev-1",
-                source_type="web",
-                url=web_results[0]["url"],
-                title=web_results[0]["title"],
-                snippet=web_results[0]["snippet"],
-                collected_at=datetime.now(),
-                entity=query_context.company_name or "Market",
-                tags=["growth", "signals"]
+        raw_findings = llm_analysis.get("findings", [])
+        findings = []
+        evidence = []
+        
+        for i, f in enumerate(raw_findings):
+            fid = f"trend-{i}"
+            findings.append(
+                Finding(
+                    id=fid,
+                    statement=f.get("statement", "No statement"),
+                    type=f.get("type", "fact"),
+                    confidence=f.get("confidence", "low"),
+                    rationale=f.get("rationale", "No rationale"),
+                    domain="Market",
+                    evidence_ids=[f"ev-market-{i}"]
+                )
             )
-        ]
+            # Link to the first relevant result for evidence
+            source_list = web_results + news_results
+            source = source_list[0] if source_list else {"url": "N/A", "title": "N/A", "snippet": "N/A"}
+            
+            evidence.append(
+                Evidence(
+                    id=f"ev-market-{i}",
+                    source_type="web/news",
+                    url=source.get("url", "N/A"),
+                    title=source.get("title", "N/A"),
+                    snippet=source.get("snippet", "N/A"),
+                    collected_at=datetime.now(),
+                    entity=query_context.company_name or "Market",
+                    tags=["growth", "signals"]
+                )
+            )
         
         # 4. Build artifacts
         artifacts = [
             Artifact(
                 artifact_type="trend_timeline",
                 title="Market Signal Timeline",
-                payload={"2024-Q1": "Initial boom", "2024-Q2": "Consolidation"}
+                payload={"2024-Q1": "Expansion Phase", "2024-Q2": "Growth Tracking"}
             )
         ]
         

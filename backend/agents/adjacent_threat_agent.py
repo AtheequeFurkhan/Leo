@@ -14,38 +14,52 @@ class AdjacentThreatAgent(BaseAgent):
 
     async def run(self, query_context) -> AgentOutput:
         # Collect Patent data
-        patents = await search_patents(query_context.company_name or query_context.query)
+        search_query = query_context.company_name or query_context.query
+        patents = await search_patents(search_query)
         
-        findings = [
-            Finding(
-                id="threat-1",
-                statement="CRM platforms are building native SDR capabilities.",
-                type="interpretation",
-                confidence="medium",
-                rationale="Platform expansion trends across Salesforce and HubSpot.",
-                domain="Threats",
-                evidence_ids=["ev-3"]
-            )
-        ]
+        # LLM Analysis
+        llm_analysis = await self.analyze_with_llm(
+            data={"patents": patents}, 
+            query=search_query, 
+            context_type="Adjacent Market Threats / Patents"
+        )
         
-        evidence = [
-            Evidence(
-                id="ev-3",
-                source_type="web",
-                url="https://crm-news.com/product-roadmap",
-                title="CRM Roadmap Analysis",
-                snippet="Future focus on autonomous outreach.",
-                collected_at=datetime.now(),
-                entity="Big CRM",
-                tags=["platform", "expansion"]
+        raw_findings = llm_analysis.get("findings", [])
+        findings = []
+        evidence = []
+        
+        for i, f in enumerate(raw_findings):
+            findings.append(
+                Finding(
+                    id=f"threat-{i}",
+                    statement=f.get("statement", ""),
+                    type=f.get("type", "interpretation"),
+                    confidence=f.get("confidence", "low"),
+                    rationale=f.get("rationale", ""),
+                    domain="Threats",
+                    evidence_ids=[f"ev-patent-{i}"]
+                )
             )
-        ]
+            
+            p_source = patents[0] if patents else {"patent_number": "N/A", "title": "N/A", "abstract": "N/A"}
+            evidence.append(
+                Evidence(
+                    id=f"ev-patent-{i}",
+                    source_type="patent",
+                    url=f"https://patents.google.com/patent/{p_source.get('patent_number')}",
+                    title=p_source.get("title", "Patent Signal"),
+                    snippet=p_source.get("abstract", ""),
+                    collected_at=datetime.now(),
+                    entity="Adjacent Player",
+                    tags=["platform", "expansion"]
+                )
+            )
         
         artifacts = [
             Artifact(
                 artifact_type="threat_map",
                 title="Strategic Threat Map",
-                payload={"direct": ["SDR Tools"], "adjacent": ["CRMs", "Email Providers"]}
+                payload={"tech_signals": [p.get('title') for p in patents]}
             )
         ]
         

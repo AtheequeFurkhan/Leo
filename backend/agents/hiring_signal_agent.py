@@ -19,39 +19,38 @@ class HiringSignalAgent(BaseAgent):
         findings = []
         evidence = []
         
-        if hiring_results:
+        for i, f in enumerate(raw_findings):
             findings.append(
                 Finding(
-                    id="hiring-1",
-                    statement=f"{query_context.company_name or 'The company'} is actively recruiting for technical and leadership roles, suggesting expansion.",
-                    type="signal",
-                    confidence="medium",
-                    rationale="Detected multiple new job postings in specialized domains.",
+                    id=f"hiring-{i}",
+                    statement=f.get("statement", ""),
+                    type=f.get("type", "signal"),
+                    confidence=f.get("confidence", "low"),
+                    rationale=f.get("rationale", ""),
                     domain="Hiring",
-                    evidence_ids=[f"ev-hiring-{i}" for i in range(len(hiring_results))]
+                    evidence_ids=[f"ev-hiring-{i}"]
                 )
             )
             
-            for i, result in enumerate(hiring_results):
-                evidence.append(
-                    Evidence(
-                        id=f"ev-hiring-{i}",
-                        source_type="hiring_board",
-                        url="#",  # Placeholder for real job link
-                        title=f"{result['title']} at {result['company']}",
-                        snippet=result['description'],
-                        collected_at=datetime.now(),
-                        entity=result['company'],
-                        tags=["hiring", "expansion"]
-                    )
+            j_source = jobs[0] if jobs else {"title": "Jobs Search", "company": "Various"}
+            evidence.append(
+                Evidence(
+                    id=f"ev-hiring-{i}",
+                    source_type="hiring_search",
+                    url="#",
+                    title=f"Hiring Signal: {j_source.get('title')}",
+                    snippet=f"Posted by {j_source.get('company')}",
+                    collected_at=datetime.now(),
+                    entity=query_context.company_name or "Target Industry",
+                    tags=["hiring", "growth"]
                 )
-
-        # 4. Build artifacts
+            )
+        
         artifacts = [
             Artifact(
-                artifact_type="hiring_map",
-                title="Active Recruitment Signals",
-                payload={"roles": [r['title'] for r in hiring_results]}
+                artifact_type="hiring_velocity",
+                title="Hiring Velocity Index",
+                payload={"postings_found": len(jobs)}
             )
         ]
         

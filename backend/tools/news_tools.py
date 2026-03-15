@@ -1,27 +1,38 @@
-import asyncio
-import random
+import httpx
 from typing import List, Dict
+from ..config import settings
 
 async def search_news(query: str) -> List[Dict]:
     """
     Search for recent news relevant to the query using NewsAPI.
-    Note: In a production environment, this would use an API key.
     """
-    await asyncio.sleep(0.5)
-    # Simulated NewsAPI response
-    return [
-        {
-            "title": f"Recent expansion in {query} sector",
-            "source": "TechCrunch",
-            "url": f"https://techcrunch.com/news/{random.randint(1000, 9999)}",
-            "published_at": "2024-03-15T10:00:00Z",
-            "snippet": f"Market analysis shows significant growth patterns for {query}..."
-        },
-        {
-            "title": f"Industry report: The future of {query}",
-            "source": "Reuters",
-            "url": f"https://reuters.com/business/{random.randint(1000, 9999)}",
-            "published_at": "2024-03-14T15:30:00Z",
-            "snippet": f"Experts weigh in on the competitive dynamics of {query}."
-        }
-    ]
+    if not settings.NEWSAPI_KEY:
+        return [{"error": "Missing NewsAPI Key"}]
+
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "apiKey": settings.NEWSAPI_KEY,
+        "pageSize": 5,
+        "sortBy": "relevancy"
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            
+            articles = data.get("articles", [])
+            return [
+                {
+                    "title": a["title"],
+                    "source": a["source"]["name"],
+                    "url": a["url"],
+                    "published_at": a["publishedAt"],
+                    "snippet": a["description"]
+                }
+                for a in articles
+            ]
+        except Exception as e:
+            return [{"error": str(e)}]

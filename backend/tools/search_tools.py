@@ -1,31 +1,48 @@
-import asyncio
-import random
+import httpx
+from typing import List, Dict
+from ..config import settings
 
-async def search_web(query: str):
-    """Mock web search."""
-    await asyncio.sleep(0.5)
-    return [
-        {"title": f"Result for {query}", "url": f"https://example.com/{random.randint(1,100)}", "snippet": f"This is a simulated search result for {query}."}
-        for _ in range(3)
-    ]
+async def search_web(query: str) -> List[Dict]:
+    """
+    Real web search using SerpAPI.
+    """
+    if not settings.SERPAPI_API_KEY:
+        return [{"error": "Missing SerpAPI Key"}]
 
-async def search_reddit(query: str):
-    """
-    Search Reddit for community discussions.
-    In production, this would use PRAW or a similar wrapper.
-    """
-    await asyncio.sleep(0.4)
-    return [
-        {"title": f"Does anyone use {query} for growth?", "url": "https://reddit.com/r/SaaS/123", "score": random.randint(10, 500), "snippet": "I've been looking into it but wanted to see if the community has thoughts."},
-        {"title": f"Comparison: {query} vs Competitor X", "url": "https://reddit.com/r/ai/456", "score": random.randint(50, 1000), "snippet": "The UI is better on X but the features here are more robust."}
-    ]
+    url = "https://serpapi.com/search"
+    params = {
+        "q": query,
+        "api_key": settings.SERPAPI_API_KEY,
+        "engine": "google",
+        "num": 5
+    }
 
-async def search_hackernews(query: str):
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, params=params, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            
+            results = data.get("organic_results", [])
+            return [
+                {
+                    "title": r.get("title"),
+                    "url": r.get("link"),
+                    "snippet": r.get("snippet")
+                }
+                for r in results
+            ]
+        except Exception as e:
+            return [{"error": str(e)}]
+
+async def search_reddit(query: str) -> List[Dict]:
     """
-    Search Hacker News via Algolia API.
+    Search Reddit using SerpAPI with site constraint.
     """
-    await asyncio.sleep(0.4)
-    return [
-        {"title": f"Show HN: {query} Alternative", "url": "https://news.ycombinator.com/item?id=789", "points": random.randint(5, 100), "snippet": "We built this to solve the latency issues we saw in other platforms."},
-        {"title": f"Discussion: The state of {query} in 2024", "url": "https://news.ycombinator.com/item?id=012", "points": random.randint(20, 300), "snippet": "Interesting thread about the market shift towards these types of agents."}
-    ]
+    return await search_web(f"site:reddit.com {query}")
+
+async def search_hackernews(query: str) -> List[Dict]:
+    """
+    Search Hacker News using SerpAPI with site constraint.
+    """
+    return await search_web(f"site:news.ycombinator.com {query}")
