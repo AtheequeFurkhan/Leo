@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { ShieldAlert } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface InsightItem {
   insight: string;
@@ -35,8 +37,8 @@ function SentimentBar({ value }: { value: number }) {
 
 function InsightCard({ item, type }: { item: InsightItem; type: "win" | "loss" }) {
   return (
-    <div className="bg-slate-800/40 rounded-lg p-3 space-y-2">
-      <p className="text-sm text-slate-200">{item.insight}</p>
+    <div className="space-y-2 rounded-2xl border border-white/8 bg-black/10 p-4">
+      <p className="text-sm leading-7 text-slate-200">{item.insight}</p>
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-500">Mentioned {item.frequency} times</span>
         <SentimentBar value={item.sentiment} />
@@ -46,7 +48,7 @@ function InsightCard({ item, type }: { item: InsightItem; type: "win" | "loss" }
           <span
             key={s}
             className={`text-xs px-2 py-0.5 rounded ${
-              type === "win" ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+              type === "win" ? "bg-emerald-500/10 text-emerald-300" : "bg-red-500/10 text-rose-300"
             }`}
           >
             {s}
@@ -62,37 +64,45 @@ export default function WinLossAnalysis({ payload }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 space-y-4"
+      className=""
     >
-      <h3 className="text-sm font-semibold text-slate-200">Win / Loss Analysis</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-emerald-400 mb-3">
-            Why deals are won
-          </h4>
-          <div className="space-y-2">
-            {payload.wins.map((item, i) => (
-              <InsightCard key={i} item={item} type="win" />
-            ))}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/12 text-indigo-100">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle>Win / loss analysis</CardTitle>
+              <p className="text-sm text-slate-400">Review the strongest buying and rejection patterns from public signals.</p>
+            </div>
           </div>
-        </div>
-        <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-red-400 mb-3">
-            Why deals are lost
-          </h4>
-          <div className="space-y-2">
-            {payload.losses.map((item, i) => (
-              <InsightCard key={i} item={item} type="loss" />
-            ))}
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Why deals are won</h4>
+              <div className="space-y-3">
+                {payload.wins.map((item, i) => (
+                  <InsightCard key={i} item={item} type="win" />
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-rose-300">Why deals are lost</h4>
+              <div className="space-y-3">
+                {payload.losses.map((item, i) => (
+                  <InsightCard key={i} item={item} type="loss" />
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="bg-slate-800/30 rounded-lg p-3 border-l-2 border-indigo-500">
-        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
-          Buyer&apos;s Perspective Summary
-        </h4>
-        <p className="text-sm text-slate-300 leading-relaxed">{payload.buyer_summary}</p>
-      </div>
+          <div className="rounded-[24px] border border-white/8 bg-black/10 p-5">
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Buyer perspective summary</h4>
+            <p className="text-sm leading-7 text-slate-300">{payload.buyer_summary}</p>
+          </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }

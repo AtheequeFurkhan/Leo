@@ -7,24 +7,42 @@
   --foreground: #e2e8f0;
 }
 
+* {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
+  min-height: 100vh;
+  background-image:
+    radial-gradient(circle at top, rgba(99, 102, 241, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(2, 6, 23, 1) 0%, rgba(2, 8, 23, 1) 100%);
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: rgba(100, 116, 139, 0.5);
+  border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(148, 163, 184, 0.7);
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.35);
+  color: #f8fafc;
 }
 
 /* Agent status pulse */
