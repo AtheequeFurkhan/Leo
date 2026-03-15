@@ -11,6 +11,8 @@ from ..schemas.artifact_schema import Artifact
 from ..schemas.query_schema import QueryRequest
 from dotenv import load_dotenv
 import serpapi
+from ..tools.news_tools import get_funding_news, search_news
+from ..tools.gdelt_tools import get_trend_timeline, get_market_sentiment
 
 load_dotenv()
 
@@ -144,6 +146,64 @@ class MarketTrendsAgent(BaseAgent):
                     domain="market_trends",
                     evidence_ids=[ev_id]
                 ))
+
+            # 4. NewsAPI Funding & Announcements
+            if query_context.company_name:
+                funding_news = await get_funding_news(query_context.company_name)
+                for article in funding_news[:2]:
+                    ev_id = str(uuid.uuid4())
+                    evidence.append(Evidence(
+                        id=ev_id,
+                        source_type="newsapi",
+                        url=article["url"],
+                        title=article["title"],
+                        snippet=article["snippet"],
+                        collected_at=datetime.utcnow(),
+                        entity=query_context.company_name,
+                        tags=["funding", "news"]
+                    ))
+                    findings.append(Finding(
+                        id=str(uuid.uuid4()),
+                        statement=f"Detected funding signal for {query_context.company_name}: {article['title']}",
+                        type="fact",
+                        confidence="medium",
+                        rationale="Derived from professional news sources via NewsAPI.",
+                        domain="market_trends",
+                        evidence_ids=[ev_id]
+                    ))
+
+            # 5. GDELT Sentiment & Global Trends
+            gdelt_query = f'"{product}" OR "{category}"'
+            sentiment = await get_market_sentiment(gdelt_query)
+            if sentiment.get("mentions", 0) > 0:
+                ev_id = str(uuid.uuid4())
+                evidence.append(Evidence(
+                    id=ev_id,
+                    source_type="gdelt",
+                    url="https://gdeltproject.org",
+                    title="Global Sentiment Tracker (GDELT)",
+                    snippet=f"Detected {sentiment['mentions']} global mentions. Sentiment score (tone): {sentiment['score']:.2f}.",
+                    collected_at=datetime.utcnow(),
+                    entity=product,
+                    tags=["sentiment", "global_context"]
+                ))
+                findings.append(Finding(
+                    id=str(uuid.uuid4()),
+                    statement=f"Global market sentiment for {product} is {'positive' if sentiment['score'] > 0 else 'neutral/negative'} (Score: {sentiment['score']:.2f}).",
+                    type="interpretation",
+                    confidence="medium",
+                    rationale="Based on GDELT Project global event tracking data.",
+                    domain="market_trends",
+                    evidence_ids=[ev_id]
+                ))
+
+                gdelt_timeline = await get_trend_timeline(gdelt_query)
+                if gdelt_timeline:
+                    artifacts.append(Artifact(
+                        artifact_type="gdelt_momentum",
+                        title=f"Global Mention Momentum — {product}",
+                        payload=gdelt_timeline
+                    ))
 
         except Exception as e:
             return AgentOutput(

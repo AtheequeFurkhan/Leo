@@ -7,66 +7,81 @@ from ..schemas.evidence_schema import Evidence
 from ..schemas.artifact_schema import Artifact
 
 from ..tools.patent_tools import search_patents
+from ..tools.gdelt_tools import search_gdelt, get_trend_timeline
 
 class AdjacentThreatAgent(BaseAgent):
     def __init__(self):
         super().__init__("AdjacentThreatAgent")
 
     async def run(self, query_context) -> AgentOutput:
-        # Collect Patent data
-        search_query = query_context.company_name or query_context.query
-        patents = await search_patents(search_query)
+        product = query_context.product_name or query_context.company_name or query_context.query
+        category = query_context.context.get("category", product)
+
+        # 1. Collect Patent data
+        search_query = product
         
-        # LLM Analysis
-        llm_analysis = await self.analyze_with_llm(
-            data={"patents": patents}, 
-            query=search_query, 
-            context_type="Adjacent Market Threats / Patents"
+        # 2. Collect GDELT event data
+        results = await asyncio.gather(
+            search_patents(search_query),
+            search_gdelt(f'"{product}" OR "{category}" adjacent market')
         )
+        patents, gdelt_articles = results
         
-        raw_findings = llm_analysis.get("findings", [])
         findings = []
         evidence = []
-        
-        for i, f in enumerate(raw_findings):
-            findings.append(
-                Finding(
-                    id=f"threat-{i}",
-                    statement=f.get("statement", ""),
-                    type=f.get("type", "interpretation"),
-                    confidence=f.get("confidence", "low"),
-                    rationale=f.get("rationale", ""),
-                    domain="Threats",
-                    evidence_ids=[f"ev-patent-{i}"]
-                )
-            )
-            
-            p_source = patents[0] if patents else {"patent_number": "N/A", "title": "N/A", "abstract": "N/A"}
-            evidence.append(
-                Evidence(
-                    id=f"ev-patent-{i}",
-                    source_type="patent",
-                    url=f"https://patents.google.com/patent/{p_source.get('patent_number')}",
-                    title=p_source.get("title", "Patent Signal"),
-                    snippet=p_source.get("abstract", ""),
-                    collected_at=datetime.now(),
-                    entity="Adjacent Player",
-                    tags=["platform", "expansion"]
-                )
-            )
-        
-        artifacts = [
-            Artifact(
-                artifact_type="threat_map",
-                title="Strategic Threat Map",
-                payload={"tech_signals": [p.get('title') for p in patents]}
-            )
-        ]
-        
+        artifacts = []
+
+        # Patent Findings
+        for i, p in enumerate(patents[:3]):
+            ev_id = f"ev-patent-{p.get('patent_number')}"
+            evidence.append(Evidence(
+                id=ev_id,
+                source_type="patent",
+                url=f"https://patents.google.com/patent/{p.get('patent_number')}",
+                title=p.get("title", "Patent Signal"),
+                snippet=p.get("abstract", ""),
+                collected_at=datetime.utcnow(),
+                entity="Adjacent Player",
+                tags=["platform", "expansion"]
+            ))
+            findings.append(Finding(
+                id=f"f-patent-{i}",
+                statement=f"Detected R&D activity in '{category}': {p.get('title')}.",
+                type="fact",
+                confidence="high",
+                rationale="Filing found in USPTO/Google Patents index.",
+                domain="Threats",
+                evidence_ids=[ev_id]
+            ))
+
+        # GDELT Global Signal
+        for i, article in enumerate(gdelt_articles[:3]):
+            ev_id = f"ev-gdelt-{i}"
+            evidence.append(Evidence(
+                id=ev_id,
+                source_type="gdelt",
+                url=article.get("url"),
+                title=article.get("title", "Global Market Move"),
+                snippet=f"Detected global event related to {product}.",
+                collected_at=datetime.utcnow(),
+                entity=product,
+                tags=["market_threat", "adjacent_move"]
+            ))
+            findings.append(Finding(
+                id=f"f-gdelt-{i}",
+                statement=f"Global signal detected for {product} adjacent market: {article.get('title')}.",
+                type="interpretation",
+                confidence="medium",
+                rationale="Analyzed global event tracking data via GDELT Project.",
+                domain="Threats",
+                evidence_ids=[ev_id]
+            ))
+
         return AgentOutput(
             agent_name=self.name,
             status="success",
             findings=findings,
             evidence=evidence,
-            artifacts=artifacts
+            artifacts=artifacts,
+            errors=[]
         )

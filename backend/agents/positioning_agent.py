@@ -1,74 +1,96 @@
+import asyncio
+from datetime import datetime
 from .base_agent import BaseAgent
 from ..schemas.agent_output import AgentOutput
 from ..schemas.finding_schema import Finding
 from ..schemas.evidence_schema import Evidence
 from ..schemas.artifact_schema import Artifact
 from ..tools.search_tools import search_web, search_reddit
+from ..tools.techstack_tools import analyze_gtm_signals
 
 class PositioningAgent(BaseAgent):
     def __init__(self):
         super().__init__("PositioningAgent")
 
     async def run(self, query_context) -> AgentOutput:
-        # Collect Positioning data
-        search_query = f"{query_context.company_name or query_context.query} ads messaging"
+        product = query_context.product_name or query_context.company_name or query_context.query
+        domain = query_context.context.get("domain") or f"{product.lower().replace(' ', '')}.com"
+
+        # 1. Collect Messaging data
+        search_query = f"{product} ads messaging value proposition"
+        
+        # 2. Collect GTM/Tech Stack data
         results = await asyncio.gather(
             search_web(search_query),
-            search_reddit(f"{query_context.company_name or query_context.query} reviews")
+            search_reddit(f"{product} reviews"),
+            analyze_gtm_signals(domain)
         )
-        web_results, reddit_results = results
+        web_results, reddit_results, gtm_data = results
         
-        # LLM Analysis
-        all_raw_data = {"web": web_results, "social": reddit_results}
-        llm_analysis = await self.analyze_with_llm(
-            data=all_raw_data, 
-            query=search_query, 
-            context_type="Brand Positioning & Messaging"
-        )
-        
-        raw_findings = llm_analysis.get("findings", [])
         findings = []
         evidence = []
-        
-        for i, f in enumerate(raw_findings):
-            findings.append(
-                Finding(
-                    id=f"pos-{i}",
-                    statement=f.get("statement", ""),
-                    type=f.get("type", "interpretation"),
-                    confidence=f.get("confidence", "medium"),
-                    rationale=f.get("rationale", ""),
-                    domain="Positioning",
-                    evidence_ids=[f"ev-pos-{i}"]
-                )
-            )
+        artifacts = []
+
+        # Tech Stack Findings
+        if "error" not in gtm_data:
+            ev_id = f"gtm-{domain}"
+            evidence.append(Evidence(
+                id=ev_id,
+                source_type="builtwith/firecrawl",
+                url=f"https://{domain}",
+                title=f"GTM Stack Analysis: {domain}",
+                snippet=f"Detected signals: {', '.join(gtm_data.get('stack_signals', []))}. Raw stack: {gtm_data.get('raw_stack', {}).get('technologies', [])[:10]}",
+                collected_at=datetime.utcnow(),
+                entity=product,
+                tags=["gtm_strategy", "tech_stack"]
+            ))
             
-            source = web_results[0] if web_results else reddit_results[0] if reddit_results else {"url": "#", "title": "N/A"}
-            evidence.append(
-                Evidence(
-                    id=f"ev-pos-{i}",
-                    source_type="ad_library/social",
-                    url=source.get("url", "#"),
-                    title=source.get("title", "Positioning Signal"),
-                    snippet=source.get("snippet", ""),
-                    collected_at=datetime.now(),
-                    entity=query_context.company_name or "Brand",
-                    tags=["messaging", "angle"]
-                )
-            )
-        
-        artifacts = [
-            Artifact(
-                artifact_type="positioning_map",
-                title="Positioning & Messaging Map",
-                payload={"core_messages": [f.get('statement') for f in raw_findings]}
-            )
-        ]
-        
+            for signal in gtm_data.get("stack_signals", []):
+                findings.append(Finding(
+                    id=f"f-gtm-{signal.lower().replace(' ', '-')}",
+                    statement=f"Inferred GTM Strategy for {product}: {signal}.",
+                    type="interpretation",
+                    confidence="medium",
+                    rationale="GTM strategy inferred from the presence of specific enterprise or mid-market software tools.",
+                    domain="Positioning",
+                    evidence_ids=[ev_id]
+                ))
+
+            artifacts.append(Artifact(
+                artifact_type="tech_stack_detail",
+                title=f"Tech Stack — {domain}",
+                payload=gtm_data
+            ))
+
+        # Web/Reddit analysis (simplified for now)
+        if web_results:
+            ev_id = f"web-pos-{product}"
+            evidence.append(Evidence(
+                id=ev_id,
+                source_type="web",
+                url=web_results[0].get("url", "#"),
+                title=f"Positioning Signal: {web_results[0].get('title')}",
+                snippet=web_results[0].get("snippet", ""),
+                collected_at=datetime.utcnow(),
+                entity=product,
+                tags=["messaging"]
+            ))
+            
+            findings.append(Finding(
+                id=f"f-messaging-{product}",
+                statement=f"Primary messaging angle for {product} revolves around: {web_results[0].get('title')}",
+                type="interpretation",
+                confidence="medium",
+                rationale="Analyzed from search results for company ads and messaging.",
+                domain="Positioning",
+                evidence_ids=[ev_id]
+            ))
+
         return AgentOutput(
             agent_name=self.name,
             status="success",
             findings=findings,
             evidence=evidence,
-            artifacts=artifacts
+            artifacts=artifacts,
+            errors=[]
         )

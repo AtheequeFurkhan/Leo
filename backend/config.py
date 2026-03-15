@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     ADZUNA_APP_KEY: Optional[str] = None
     REDDIT_CLIENT_ID: Optional[str] = None
     REDDIT_CLIENT_SECRET: Optional[str] = None
+    HUNTER_API_KEY: Optional[str] = None
     REDDIT_USER_AGENT: str = "LeoIntelligenceAgent/1.0"
     
     # --- Ads & IP ---
