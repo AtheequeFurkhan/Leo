@@ -1,5 +1,5 @@
 from typing import Dict
-from ..schemas.memory_schema import SessionMemory
+from backend.schemas.memory_schema import SessionMemory
 
 class MemoryManager:
     def __init__(self):

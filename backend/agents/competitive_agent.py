@@ -1,13 +1,13 @@
 import asyncio
 from datetime import datetime
-from .base_agent import BaseAgent
-from ..schemas.agent_output import AgentOutput
-from ..schemas.finding_schema import Finding
-from ..schemas.evidence_schema import Evidence
-from ..schemas.artifact_schema import Artifact
-from ..tools.search_tools import search_web
-from ..tools.crunchbase_tools import get_company_detail, search_organizations
-from ..tools.domain_tools import get_team_composition
+from backend.agents.base_agent import BaseAgent
+from backend.schemas.agent_output import AgentOutput
+from backend.schemas.finding_schema import Finding
+from backend.schemas.evidence_schema import Evidence
+from backend.schemas.artifact_schema import Artifact
+from backend.tools.search_tools import search_web
+from backend.tools.crunchbase_tools import get_company_detail, search_organizations
+from backend.tools.domain_tools import get_team_composition
 
 class CompetitiveLandscapeAgent(BaseAgent):
     def __init__(self):
@@ -89,7 +89,7 @@ class CompetitiveLandscapeAgent(BaseAgent):
             ))
         
         # LLM Analysis
-        all_raw_data = {"search": raw_results, "crunchbase": cb_data}
+        all_raw_data = {"search": raw_results, "crunchbase": competitors_cb}
         llm_analysis = await self.analyze_with_llm(
             data=all_raw_data, 
             query=search_query, 

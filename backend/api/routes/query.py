@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from ...schemas.query_schema import QueryRequest
-from ...schemas.final_response import FinalResponse
-from ...orchestrator.orchestrator import Orchestrator
-from ...memory.memory_manager import MemoryManager
+from backend.schemas.query_schema import QueryRequest
+from backend.schemas.final_response import FinalResponse
+from backend.orchestrator.orchestrator import Orchestrator
+from backend.memory.memory_manager import MemoryManager
 
 router = APIRouter()
 orchestrator = Orchestrator()

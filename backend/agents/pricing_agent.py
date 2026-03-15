@@ -1,13 +1,13 @@
 import asyncio
 from datetime import datetime
-from .base_agent import BaseAgent
-from ..schemas.agent_output import AgentOutput
-from ..schemas.finding_schema import Finding
-from ..schemas.evidence_schema import Evidence
-from ..schemas.artifact_schema import Artifact
-from ..tools.signal_extractors import detect_pricing_signals
-from ..tools.scraper_tools import scrape_page
-from ..tools.search_tools import search_web
+from backend.agents.base_agent import BaseAgent
+from backend.schemas.agent_output import AgentOutput
+from backend.schemas.finding_schema import Finding
+from backend.schemas.evidence_schema import Evidence
+from backend.schemas.artifact_schema import Artifact
+from backend.tools.signal_extractors import detect_pricing_signals
+from backend.tools.scraper_tools import scrape_page
+from backend.tools.search_tools import search_web
 
 class PricingAgent(BaseAgent):
     def __init__(self):

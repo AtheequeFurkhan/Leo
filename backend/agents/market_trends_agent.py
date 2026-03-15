@@ -3,16 +3,16 @@ import uuid
 import asyncio
 from datetime import datetime
 from typing import Dict, Any, List
-from .base_agent import BaseAgent
-from ..schemas.agent_output import AgentOutput
-from ..schemas.finding_schema import Finding
-from ..schemas.evidence_schema import Evidence
-from ..schemas.artifact_schema import Artifact
-from ..schemas.query_schema import QueryRequest
+from backend.agents.base_agent import BaseAgent
+from backend.schemas.agent_output import AgentOutput
+from backend.schemas.finding_schema import Finding
+from backend.schemas.evidence_schema import Evidence
+from backend.schemas.artifact_schema import Artifact
+from backend.schemas.query_schema import QueryRequest
 from dotenv import load_dotenv
 import serpapi
-from ..tools.news_tools import get_funding_news, search_news
-from ..tools.gdelt_tools import get_trend_timeline, get_market_sentiment
+from backend.tools.news_tools import get_funding_news, search_news
+from backend.tools.gdelt_tools import get_trend_timeline, get_market_sentiment
 
 load_dotenv()
 

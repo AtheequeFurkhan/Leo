@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from ..config import settings
+from backend.config import settings
 
 async def search_organizations(keyword: str, limit: int = 10) -> List[Dict]:
     """Search Crunchbase companies by keyword in their description."""

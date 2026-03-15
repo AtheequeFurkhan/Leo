@@ -1,7 +1,7 @@
 import httpx
 import random
 from typing import List, Dict, Any
-from ..config import settings
+from backend.config import settings
 
 from collections import Counter
 

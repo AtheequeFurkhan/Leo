@@ -1,11 +1,11 @@
 import asyncio
 from typing import List
-from .agent_registry import AgentRegistry
-from ..agents.confidence_verifier_agent import ConfidenceVerifierAgent
-from ..agents.synthesizer_agent import SynthesizerAgent
-from ..schemas.query_schema import QueryRequest
-from ..schemas.final_response import FinalResponse
-from ..schemas.agent_output import AgentOutput
+from backend.orchestrator.agent_registry import AgentRegistry
+from backend.agents.confidence_verifier_agent import ConfidenceVerifierAgent
+from backend.agents.synthesizer_agent import SynthesizerAgent
+from backend.schemas.query_schema import QueryRequest
+from backend.schemas.final_response import FinalResponse
+from backend.schemas.agent_output import AgentOutput
 
 class Orchestrator:
     def __init__(self):

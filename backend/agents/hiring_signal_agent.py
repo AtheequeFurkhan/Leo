@@ -1,11 +1,11 @@
 import asyncio
 from datetime import datetime
-from .base_agent import BaseAgent
-from ..schemas.agent_output import AgentOutput
-from ..schemas.finding_schema import Finding
-from ..schemas.evidence_schema import Evidence
-from ..schemas.artifact_schema import Artifact
-from ..tools.hiring_tools import search_hiring_signals, get_hiring_velocity, get_category_hiring_trends
+from backend.agents.base_agent import BaseAgent
+from backend.schemas.agent_output import AgentOutput
+from backend.schemas.finding_schema import Finding
+from backend.schemas.evidence_schema import Evidence
+from backend.schemas.artifact_schema import Artifact
+from backend.tools.hiring_tools import search_hiring_signals, get_hiring_velocity, get_category_hiring_trends
 
 class HiringSignalAgent(BaseAgent):
     def __init__(self):

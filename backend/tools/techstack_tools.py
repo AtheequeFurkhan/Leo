@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from firecrawl import FirecrawlApp
-from ..config import settings
+from backend.config import settings
 
 async def get_tech_stack(domain: str) -> Dict[str, Any]:
     """

@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict
-from ..config import settings
+from backend.config import settings
 
 async def search_patents(query: str) -> List[Dict]:
     """

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Any, Dict
-from ..schemas.query_schema import QueryRequest
-from ..schemas.agent_output import AgentOutput
-from ..tools.llm_client import LLMClient
-from ..config import settings
+from backend.schemas.query_schema import QueryRequest
+from backend.schemas.agent_output import AgentOutput
+from backend.tools.llm_client import LLMClient
+from backend.config import settings
 
 class BaseAgent(ABC):
     def __init__(self, name: str):

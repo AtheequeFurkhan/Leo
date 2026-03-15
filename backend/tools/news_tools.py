@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from ..config import settings
+from backend.config import settings
 
 async def search_news(query: str, days_back: int = 30) -> List[Dict]:
     """

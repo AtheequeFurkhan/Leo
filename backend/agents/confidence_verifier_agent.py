@@ -1,6 +1,6 @@
 from typing import List
-from .base_agent import BaseAgent
-from ..schemas.agent_output import AgentOutput
+from backend.agents.base_agent import BaseAgent
+from backend.schemas.agent_output import AgentOutput
 
 class ConfidenceVerifierAgent(BaseAgent):
     def __init__(self):

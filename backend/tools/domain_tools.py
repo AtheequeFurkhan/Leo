@@ -1,6 +1,6 @@
 import httpx
 from typing import List, Dict, Any
-from ..config import settings
+from backend.config import settings
 
 async def find_domain_emails(domain: str) -> Dict[str, Any]:
     """Retrieve email patterns and team info for a competitor domain."""

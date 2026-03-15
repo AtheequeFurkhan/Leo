@@ -1,12 +1,12 @@
 from typing import Dict, Type
-from ..agents.base_agent import BaseAgent
-from ..agents.market_trends_agent import MarketTrendsAgent
-from ..agents.competitive_agent import CompetitiveLandscapeAgent
-from ..agents.adjacent_threat_agent import AdjacentThreatAgent
-from ..agents.win_loss_agent import WinLossAgent
-from ..agents.pricing_agent import PricingAgent
-from ..agents.positioning_agent import PositioningAgent
-from ..agents.hiring_signal_agent import HiringSignalAgent
+from backend.agents.base_agent import BaseAgent
+from backend.agents.market_trends_agent import MarketTrendsAgent
+from backend.agents.competitive_agent import CompetitiveLandscapeAgent
+from backend.agents.adjacent_threat_agent import AdjacentThreatAgent
+from backend.agents.win_loss_agent import WinLossAgent
+from backend.agents.pricing_agent import PricingAgent
+from backend.agents.positioning_agent import PositioningAgent
+from backend.agents.hiring_signal_agent import HiringSignalAgent
 
 class AgentRegistry:
     def __init__(self):
